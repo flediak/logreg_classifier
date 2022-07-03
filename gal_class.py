@@ -15,8 +15,9 @@
 # # references:
 # - https://towardsdatascience.com/introduction-to-logistic-regression-66248243c148
 # - https://towardsdatascience.com/logistic-regression-with-python-using-optimization-function-91bd2aee79b
+# - https://fa.bianp.net/blog/2013/numerical-optimizers-for-logistic-regression/
 
-# In[18]:
+# In[1]:
 
 
 import numpy as np
@@ -26,7 +27,7 @@ import pandas as pd
 
 # # read data
 
-# In[52]:
+# In[2]:
 
 
 fname_cosmos = '~/Documents/IA/data/COSMOS/matched_ZEST_L15_ACS-GC_v1.cvs.bz2'
@@ -54,7 +55,7 @@ cat = cat[cat.rcut_pix<750]
 
 # # volume limited samples
 
-# In[53]:
+# In[3]:
 
 
 z_min, z_max = 0.2, 2.0
@@ -62,7 +63,7 @@ z_min, z_max = 0.2, 2.0
 
 # ### intrinsic size cut
 
-# In[54]:
+# In[4]:
 
 
 ang_psf = 0.085 # psf angle in arcsec
@@ -72,13 +73,13 @@ ang_min = ang_psf*1.0 # min angle in arcsec
 app_mag_max=24
 
 
-# In[55]:
+# In[5]:
 
 
 from colossus.cosmology import cosmology
 
 
-# In[57]:
+# In[6]:
 
 
 z_rcut = z_max
@@ -95,7 +96,7 @@ cat = cat[cat.rcut_arcsec>0]
 cat['rcut_kpc'] = cosmo.angularDiameterDistance(cat.z.values)*cat.rcut_arcsec*funit
 
 
-# In[58]:
+# In[7]:
 
 
 z_min, z_max = 0.2,1.5
@@ -122,7 +123,7 @@ print(len(cat))
 
 # ### disks (disk dominated)
 
-# In[71]:
+# In[8]:
 
 
 type_ZEST = 2 # late type
@@ -134,110 +135,56 @@ select_disks_dd = (cat.type_ZEST==type_ZEST )                    & ((cat.bulg ==
 
 # ### disks (bulge dominated)
 
-# In[72]:
+# In[9]:
 
 
 type_ZEST = 2 # late type
 bulg1, bulg2 = 1,2 # bulge dominated
 irre1, irre2 = 9,9 # no values
-rcut_min_kpc = r_cut_kpc
 
 select_disks_bd = (cat.type_ZEST==type_ZEST )                    & ((cat.bulg == bulg1) | (cat.bulg == bulg2) )                    & ((cat.irre == irre1) | (cat.irre == irre2) )
 
 
 # ### ellipticals
 
-# In[73]:
+# In[10]:
 
 
 type_ZEST = 1 # early type
 bulg1, bulg2 = 9,9 # no values
 irre1, irre2 = 0,1 # regular
-rcut_min_kpc = r_cut_kpc
 
 select_ellis = (cat.type_ZEST==type_ZEST )                    & ((cat.bulg == bulg1) | (cat.bulg == bulg2) )                    & ((cat.irre == irre1) | (cat.irre == irre2) )
 
 
 # ### iregular
 
-# In[74]:
+# In[11]:
 
 
 type_ZEST = 3 # late type
 bulg1, bulg2 = 9,9 # no values
 irre1, irre2 = 9,9 # no values
-rcut_min_kpc = r_cut_kpc
 
 select_irre = (cat.type_ZEST==type_ZEST )                    & ((cat.bulg == bulg1) | (cat.bulg == bulg2) )                    & ((cat.irre == irre1) | (cat.irre == irre2) )
 
 
-# In[90]:
-
-
-cat['gal_class'] = 0
-cat.loc[select_disks_dd, 'gal_class']=1
-
-
 # # plot data
 
-# In[96]:
+# In[13]:
 
 
 plt.scatter(cat.rj, cat.nuvr, s=0.1, c=cat.gal_class)
-
-
-# # select random subsets for training, validation and testing
-
-# In[277]:
-
-
-frac_train, frac_val, frac_test = 0.4,0.4,0.2
-
-
-# In[278]:
-
-
-rnd = np.random.random(len(cat))
-
-
-# In[279]:
-
-
-cat_train = cat.loc[rnd <=frac_train]
-cat_val = cat.loc[((frac_train < rnd) & (rnd<frac_train+frac_val))]
-cat_test = cat.loc[frac_train+frac_val <= rnd]
-
-
-# In[280]:
-
-
-len(cat_train)/len(cat), len(cat_val)/len(cat), len(cat_test)/len(cat)
-
-
-# # initialize data matrix X
-
-# In[281]:
-
-
-features = ['rj', 'nuvr']
-
-X_train = cat[features].values
-Y_train = cat['gal_class']
-
-nonan = (np.isnan(X_train[:,0])==False) & (np.isnan(X_train[:,1])==False)
-
-X_train = X_train[nonan]
-Y_train = Y_train[nonan]
 
 
 # # fit model to training data
 
 # # define class
 
-# In[302]:
+# In[220]:
 
 
-from scipy.optimize import minimize,fmin_tnc
+from scipy.optimize import minimize,fmin_tnc, fmin_cg, fmin_bfgs, fmin_l_bfgs_b
 
 class logistic_regression:
     
@@ -257,8 +204,11 @@ class logistic_regression:
             if key == 'poly_order': self.poly_order = value
             
         #re-scale input features
-        X_train = X_train - X_train.T.mean(1)
-        X_train = X_train / X_train.T.var(1)
+        self.train_mean = self.X_train.T.mean(1)
+        self.X_train = self.X_train - self.train_mean
+        
+        self.train_var = self.X_train.T.var(1)
+        self.X_train = self.X_train / self.train_var
         
         ### add higher orders
         self.X_train = self._add_higher_orders(self.X_train,self.poly_order)
@@ -269,13 +219,15 @@ class logistic_regression:
         self.Nfeature_model = self.X_train.shape[1]
             
         #model parameters
-        self.theta_ini = np.full(self.Nfeature_model, 1)
+        self.theta_ini = np.full(self.Nfeature_model, 0)
         self.theta_fit = np.full(self.Nfeature_model, np.nan)
         
         #costs
         self.cost_train = np.nan
-        self.cost_val = np.nan
+        self.cost_test = np.nan
         
+        self.accuracy_train = 0
+        self.accuracy_test = 0
 
     def _add_higher_orders(self,X_in,max_order):
 
@@ -315,24 +267,27 @@ class logistic_regression:
         print('number of model parameter: ', self.Nfeature_model)
         
         
-    def sigmoid(self,X,theta):
+    def _sigmoid(self,X,theta):
         z = np.matmul(X,theta.T)
+        
+        #print(theta,z)
+        
         return (1+np.exp(-z))**-1
 
     
     def _hypothesis(self,X,theta):
-        return sigmoid(X, theta) 
+        return self._sigmoid(X, theta) 
         
         
     def _cost_function(self,theta, X, Y):
         m = X.shape[0]
-        h = hypothesis(X,theta)
+        h = self._hypothesis(X,theta)
         return -(1/m)*np.sum(Y*np.log(h) + (1-Y)*np.log(1-h))
 
     
     def _gradient(self,theta, X, Y):
         m = X.shape[0]
-        h = hypothesis(X,theta)
+        h = self._hypothesis(X,theta)
         return (1/m) * np.dot(X.T, (h-Y))
     
     
@@ -341,10 +296,7 @@ class logistic_regression:
         for key, value in kwargs.items():
             if key == 'optimizer': self.optimizer = value
             if key == 'theta_ini': self.theta_ini = value
-        #print(self.optimizer)
-        #print(self.theta_ini)
-        
-        
+                
         opt_weights = fmin_tnc(
             func=self._cost_function, x0=self.theta_ini, fprime=self._gradient,
             args=(self.X_train, self.Y_train)
@@ -352,52 +304,139 @@ class logistic_regression:
         
         self.theta_fit = opt_weights[0]
         
-        
         self.cost_train = self._cost_function(self.theta_fit, self.X_train, self.Y_train)
 
+        Y_model = self.predict(X_train)
+        self.accuracy_train = 1 -  np.count_nonzero((Y_model - Y_train))/len(Y_train)
 
-    def validate_model(self):
-        print('cost_train:')
-        print('cost_test:')
-    
+    def predict(self,X_in):
+        
+        #re-scale input features
+        X_in = X_in - self.train_mean
+        X_in = X_in / self.train_var
+        
+        ### add higher orders
+        X_in = self._add_higher_orders(X_in,self.poly_order)
+        
+        ### add 1 as first column bias terms
+        X_in = np.insert(X_in,0,1, axis=1)
+        
+        sig = self._sigmoid(X_in,self.theta_fit)
+        Y_out = np.zeros(len(sig))
+        Y_out[sig>0.5]=1
+
+        return Y_out
+
+        
+    def test(self, X_test, Y_test):
+                
+        Y_model = self.predict(X_test)
+        self.accuracy_test = 1 -  np.count_nonzero((Y_model - Y_test))/len(Y_test)
+
+
+# In[293]:
+
+
+# type to classify
+cat['gal_class'] = 0
+#cat.loc[select_disks_dd, 'gal_class']=1
+cat.loc[select_ellis, 'gal_class']=1
+
+
+# # features used for cliassification
+
+# In[300]:
+
+
+features = ['rj', 'nuvr']
+#features = ['rj', 'nuvr', 'rk']
+#features = ['rj', 'nuvr', 'rk', 'ur', 'm_r']
+
+cat = cat.dropna(subset = features)
+
+
+# # define subsets for training, testing, validation
+
+# In[301]:
+
+
+frac_train, frac_val, frac_test = 0.4,0.4,0.2
+
+rnd = np.random.random(len(cat))
+
+cat_train = cat.loc[rnd <=frac_train]
+cat_val = cat.loc[((frac_train < rnd) & (rnd<frac_train+frac_val))]
+cat_test = cat.loc[frac_train+frac_val <= rnd]
+
+#len(cat_train)/len(cat), len(cat_val)/len(cat), len(cat_test)/len(cat)
+
+
+# # initialize data matrix X
+
+# In[302]:
+
+
+#list(cat)
 
 
 # In[303]:
 
 
-model = logistic_regression(X_train, Y_train, poly_order=2)
-model.summary()
+X_train = cat_train[features].values
+Y_train = cat_train['gal_class']
+
+X_test = cat_test[features].values
+Y_test = cat_test['gal_class']
 
 
-# In[304]:
+# In[310]:
 
 
-model.fit(theta_ini=np.array([2,1,2,2,2]))
+5#for order in range(3):
+
+model = logistic_regression(X_train, Y_train, poly_order=1)
+#model.summary()
+model.fit()
+#model.cost_train
+model.test(X_test, Y_test)
+
+print(model.accuracy_test, model.accuracy_train)
 
 
-# In[177]:
+# In[311]:
 
 
-model.theta_fit
+Ndat = 10000
+Nfeature = 2
+
+#random feature vectors for Ndat data points
+f1 = -1+np.random.rand(Ndat)*3
+f2 = -1+np.random.rand(Ndat)*8
+
+# concat input vectors to data matrix
+X_rand = np.concatenate((f1,f2)).reshape(Nfeature,Ndat).T
 
 
-# In[172]:
+# In[312]:
 
 
-model.cost_train
+Y_rand = model.predict(X_rand)
 
 
-# In[173]:
+# In[315]:
 
 
-names = ['wer', 'wie', 'was', 'wann', 'warum']
-model.training_data(feature_names = names)
+plt.scatter(X_rand[:,0], X_rand[:,1], c=Y_rand, s=0.1)
+#plt.scatter(cat.rj, cat.nuvr, s=0.1, c='r')
+plt.scatter(cat[select_ellis==True].rj, cat[select_ellis==True].nuvr, s=0.1, c='r')
+#plt.scatter(cat[select_ellis==False].rj, cat[select_ellis==False].nuvr, s=0.1, c='b')
+#plt.scatter(cat[select_disks_dd==False].rj, cat[select_disks_dd==False].nuvr, s=0.1, c='b')
 
 
 # # convergence tests
 
 # # convert notebook to python script and remove this command from script
 
-# In[64]:
+# In[313]:
 
 
