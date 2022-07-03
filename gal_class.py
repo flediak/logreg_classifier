@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[2]:
+# In[33]:
 
 
 #Logistic regression for Goofies
@@ -16,7 +16,7 @@
 # - https://towardsdatascience.com/introduction-to-logistic-regression-66248243c148
 # - https://towardsdatascience.com/logistic-regression-with-python-using-optimization-function-91bd2aee79b
 
-# In[358]:
+# In[34]:
 
 
 import numpy as np
@@ -35,7 +35,7 @@ from matplotlib import pyplot as plt
 
 # # define model
 
-# In[359]:
+# In[35]:
 
 
 def sigmoid(X,theta):
@@ -43,7 +43,7 @@ def sigmoid(X,theta):
     return (1+np.exp(-z))**-1
 
 
-# In[360]:
+# In[36]:
 
 
 def hypothesis(X,theta):
@@ -54,14 +54,14 @@ def hypothesis(X,theta):
 
 # ### make random input data
 
-# In[361]:
+# In[37]:
 
 
 Ndat = 1000
 Nfeature_in = 2
 
 
-# In[362]:
+# In[38]:
 
 
 #random feature vectors for Ndat data points
@@ -74,7 +74,7 @@ X = np.concatenate((f1,f2)).reshape(Nfeature_in,Ndat).T
 
 # ### add higher order terms to data matrix
 
-# In[363]:
+# In[39]:
 
 
 def add_higher_orders(X_in,max_order):
@@ -95,19 +95,19 @@ def add_higher_orders(X_in,max_order):
     return X_out
 
 
-# In[364]:
+# In[40]:
 
 
 max_order = 3
 
 
-# In[365]:
+# In[41]:
 
 
 X = add_higher_orders(X,max_order)
 
 
-# In[366]:
+# In[42]:
 
 
 print('Nfeature =', X.shape[1])
@@ -115,7 +115,7 @@ print('Nfeature =', X.shape[1])
 
 # ### add 1 as first column bias terms
 
-# In[367]:
+# In[43]:
 
 
 X = np.insert(X,0,1, axis=1)
@@ -123,7 +123,7 @@ X = np.insert(X,0,1, axis=1)
 
 # ### examples of descision bounderies for random parameters
 
-# In[368]:
+# In[44]:
 
 
 Nx = 5
@@ -164,37 +164,20 @@ for ix in range(Nx):
 plt.tight_layout()
 
 
-# In[385]:
-
-
-#example
-
-theta = -1 + np.random.rand(Nfeature)*2
-        
-sig = sigmoid(X,theta)
-gal_class = np.zeros(len(sig))
-gal_class[sig>0.5]=1
-
-Y = gal_class
-
-plt.scatter(X[:,1],X[:,2],c=Y, cmap='bwr', s=20)
-plt.show()
-
-
-# In[386]:
+# In[46]:
 
 
 theta_in = theta
 print(theta)
 
 
-# In[387]:
+# In[47]:
 
 
 X.shape
 
 
-# In[388]:
+# In[48]:
 
 
 Y.shape
@@ -204,7 +187,7 @@ Y.shape
 # 
 # ### $J = -\frac{1}{m}\sum \left[ y^{i} log(h_\theta(x^i)) + (1-y^i)log(1-h_\theta(x^i))  \right]$
 
-# In[389]:
+# In[49]:
 
 
 def cost_function(theta, X, Y):
@@ -213,13 +196,13 @@ def cost_function(theta, X, Y):
     return -(1/m)*np.sum(Y*np.log(h) + (1-Y)*np.log(1-h))
 
 
-# In[390]:
+# In[50]:
 
 
 h = hypothesis(X,theta)
 
 
-# In[391]:
+# In[51]:
 
 
 cost_function(theta,X,Y)
@@ -227,7 +210,7 @@ cost_function(theta,X,Y)
 
 # # define gradient
 
-# In[392]:
+# In[52]:
 
 
 def gradient(theta, X, Y):
@@ -238,19 +221,19 @@ def gradient(theta, X, Y):
 
 # # fit model to training data
 
-# In[393]:
+# In[53]:
 
 
 theta = np.ones((X.shape[1], 1))
 
 
-# In[394]:
+# In[54]:
 
 
 from scipy.optimize import minimize,fmin_tnc
 
 
-# In[395]:
+# In[55]:
 
 
 def fit(x, y, theta):
@@ -258,20 +241,20 @@ def fit(x, y, theta):
     return opt_weights[0]
 
 
-# In[396]:
+# In[56]:
 
 
 parameters = fit(X, Y, theta)
 
 
-# In[397]:
+# In[57]:
 
 
 print(parameters)
 print(theta_in)
 
 
-# In[398]:
+# In[58]:
 
 
 Nx, Ny = 2,1
@@ -309,13 +292,7 @@ ax[1].scatter(X[:,1],X[:,2],c=sig2, cmap='bwr', s=20)
 # mode.parameters()
 # model.predict()
 
-# In[ ]:
-
-
-
-
-
-# In[350]:
+# In[59]:
 
 
 class logistic_regression:
@@ -400,27 +377,27 @@ class logistic_regression:
     
 
 
-# In[351]:
+# In[28]:
 
 
 logreg = logistic_regression(poly_order=4)
 #logreg = logistic_regression()
 
 
-# In[352]:
+# In[29]:
 
 
 names = ['wer', 'wie', 'was', 'wann', 'warum']
 logreg.training_data(feature_names = names)
 
 
-# In[353]:
+# In[30]:
 
 
 logreg.model_summary()
 
 
-# In[354]:
+# In[31]:
 
 
 logreg.fit_model(optimizer='something new')
@@ -436,6 +413,6 @@ logreg.fit_model(optimizer='something new')
 
 # # convert notebook to python script and remove this command from script
 
-# In[355]:
+# In[32]:
 
 
