@@ -57,3 +57,5 @@ Thumbs.db
 *.mov
 *.wmv
 
+*csv.bz2
+
