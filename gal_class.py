@@ -17,7 +17,7 @@
 # - https://towardsdatascience.com/logistic-regression-with-python-using-optimization-function-91bd2aee79b
 # - https://fa.bianp.net/blog/2013/numerical-optimizers-for-logistic-regression/
 
-# In[1]:
+# In[2]:
 
 
 import numpy as np
@@ -27,7 +27,7 @@ import pandas as pd
 
 # # read data
 
-# In[2]:
+# In[3]:
 
 
 fname_cosmos = '~/Documents/IA/data/COSMOS/matched_ZEST_L15_ACS-GC_v1.cvs.bz2'
@@ -55,7 +55,7 @@ cat = cat[cat.rcut_pix<750]
 
 # # volume limited samples
 
-# In[3]:
+# In[4]:
 
 
 z_min, z_max = 0.2, 2.0
@@ -63,7 +63,7 @@ z_min, z_max = 0.2, 2.0
 
 # ### intrinsic size cut
 
-# In[4]:
+# In[5]:
 
 
 ang_psf = 0.085 # psf angle in arcsec
@@ -73,13 +73,13 @@ ang_min = ang_psf*1.0 # min angle in arcsec
 app_mag_max=24
 
 
-# In[5]:
+# In[6]:
 
 
 from colossus.cosmology import cosmology
 
 
-# In[6]:
+# In[7]:
 
 
 z_rcut = z_max
@@ -96,7 +96,7 @@ cat = cat[cat.rcut_arcsec>0]
 cat['rcut_kpc'] = cosmo.angularDiameterDistance(cat.z.values)*cat.rcut_arcsec*funit
 
 
-# In[7]:
+# In[8]:
 
 
 z_min, z_max = 0.2,1.5
@@ -123,7 +123,7 @@ print(len(cat))
 
 # ### disks (disk dominated)
 
-# In[8]:
+# In[9]:
 
 
 type_ZEST = 2 # late type
@@ -135,7 +135,7 @@ select_disks_dd = (cat.type_ZEST==type_ZEST )                    & ((cat.bulg ==
 
 # ### disks (bulge dominated)
 
-# In[9]:
+# In[10]:
 
 
 type_ZEST = 2 # late type
@@ -147,7 +147,7 @@ select_disks_bd = (cat.type_ZEST==type_ZEST )                    & ((cat.bulg ==
 
 # ### ellipticals
 
-# In[10]:
+# In[11]:
 
 
 type_ZEST = 1 # early type
@@ -159,7 +159,7 @@ select_ellis = (cat.type_ZEST==type_ZEST )                    & ((cat.bulg == bu
 
 # ### iregular
 
-# In[11]:
+# In[12]:
 
 
 type_ZEST = 3 # late type
@@ -169,19 +169,34 @@ irre1, irre2 = 9,9 # no values
 select_irre = (cat.type_ZEST==type_ZEST )                    & ((cat.bulg == bulg1) | (cat.bulg == bulg2) )                    & ((cat.irre == irre1) | (cat.irre == irre2) )
 
 
-# # plot data
-
 # In[13]:
 
 
-plt.scatter(cat.rj, cat.nuvr, s=0.1, c=cat.gal_class)
+fig,ax = plt.subplots(1,4, figsize=(20,5))
+
+ax[0].scatter(cat[select_disks_dd].rj, cat[select_disks_dd].nuvr, s=0.1, c='k')
+ax[1].scatter(cat[select_disks_bd].rj, cat[select_disks_bd].nuvr, s=0.1, c='k')
+ax[2].scatter(cat[select_ellis].rj, cat[select_ellis].nuvr, s=0.1, c='k')
+ax[3].scatter(cat[select_irre].rj, cat[select_irre].nuvr, s=0.1, c='k')
+
+ax[0].set_title('disks (disk dominated)')
+ax[1].set_title('disks (bulge dominated)')
+ax[2].set_title('ellipticals)')
+ax[3].set_title('iregulars')
+
+ax[0].set_ylabel('$nuv-r$')
+
+for ix in range(4):
+    ax[ix].set_xlabel('r-j')
+
+plt.show()
 
 
 # # fit model to training data
 
 # # define class
 
-# In[220]:
+# In[49]:
 
 
 from scipy.optimize import minimize,fmin_tnc, fmin_cg, fmin_bfgs, fmin_l_bfgs_b
@@ -190,6 +205,8 @@ class logistic_regression:
     
     def  __init__(self, X_train,Y_train ,**kwargs):
 
+        self.verbose=0
+        
         self.X_train = X_train
         self.Y_train = Y_train
         
@@ -202,6 +219,7 @@ class logistic_regression:
     
         for key, value in kwargs.items():
             if key == 'poly_order': self.poly_order = value
+            if key == 'verbose': self.verbose = value
             
         #re-scale input features
         self.train_mean = self.X_train.T.mean(1)
@@ -222,13 +240,21 @@ class logistic_regression:
         self.theta_ini = np.full(self.Nfeature_model, 0)
         self.theta_fit = np.full(self.Nfeature_model, np.nan)
         
-        #costs
+        #cost
         self.cost_train = np.nan
-        self.cost_test = np.nan
-        
-        self.accuracy_train = 0
-        self.accuracy_test = 0
+        self.cost_valid = np.nan
 
+        #performance
+        self.precision_train = np.nan
+        self.precision_valid = np.nan
+        
+        self.recall_train = np.nan
+        self.recall_valid = np.nan
+
+        self.accuracy_train = np.nan
+        self.accuracy_valid = np.nan
+
+        
     def _add_higher_orders(self,X_in,max_order):
 
         X_out = X_in.copy()
@@ -306,9 +332,6 @@ class logistic_regression:
         
         self.cost_train = self._cost_function(self.theta_fit, self.X_train, self.Y_train)
 
-        Y_model = self.predict(X_train)
-        self.accuracy_train = 1 -  np.count_nonzero((Y_model - Y_train))/len(Y_train)
-
     def predict(self,X_in):
         
         #re-scale input features
@@ -328,24 +351,56 @@ class logistic_regression:
         return Y_out
 
         
-    def test(self, X_test, Y_test):
-                
-        Y_model = self.predict(X_test)
-        self.accuracy_test = 1 -  np.count_nonzero((Y_model - Y_test))/len(Y_test)
+    def performance(self, X_in, Y_in, dataset):
+        
+        Y_model = self.predict(X_in)
+        
+        true_positive = (Y_in==1) & (Y_model==1)
+        false_positive = (Y_in==1) & (Y_model==0)
+        true_negative =  (Y_in==0) & (Y_model==0)
+        false_negative =  (Y_in==0) & (Y_model==1)
 
+        Ntp = len(true_positive[true_positive==True])
+        Nfp = len(true_positive[false_positive==True])
+        Ntn = len(true_positive[true_negative==True])
+        Nfn = len(true_positive[false_negative==True])
 
-# In[293]:
+        if self.verbose>0:
+            print('')
+            if dataset=='training': print('performance on training set:')
+            if dataset=='validation': print('performance on validation set:')
 
+            print('')
+            print('true positive: ',Ntp)
+            print('false positive: ',Nfp)
+            print('true negative: ',Ntn)
+            print('false negative: ',Nfn)
+            
 
-# type to classify
-cat['gal_class'] = 0
-#cat.loc[select_disks_dd, 'gal_class']=1
-cat.loc[select_ellis, 'gal_class']=1
+        if dataset=='training':
+            if Ntp + Nfp > 0: self.precision_train = Ntp / (Ntp + Nfp)
+            if Ntp + Nfn > 0: self.recall_train = Ntp / (Ntp + Nfn)
+            if Ntp+Ntn+Nfp+Ntn > 0: self.accuracy_train = (Ntp+Ntn) / (Ntp+Ntn+Nfp+Ntn)        
+            if self.verbose>0:
+                print('')
+                print('precision: ',self.precision_train)
+                print('recall: ',self.recall_train)
+                print('accuracy: ',self.accuracy_train)
+
+        if dataset=='validation':
+            if Ntp + Nfp > 0: self.precision_valid = Ntp / (Ntp + Nfp)
+            if Ntp + Nfn > 0:self.recall_valid = Ntp / (Ntp + Nfn)
+            if Ntp+Ntn+Nfp+Ntn > 0: self.accuracy_valid = (Ntp+Ntn) / (Ntp+Ntn+Nfp+Ntn)        
+            if self.verbose>0:
+                print('')
+                print('precision: ',self.precision_valid)
+                print('recall: ',self.recall_valid)
+                print('accuracy: ',self.accuracy_valid)
 
 
 # # features used for cliassification
 
-# In[300]:
+# In[50]:
 
 
 features = ['rj', 'nuvr']
@@ -357,53 +412,78 @@ cat = cat.dropna(subset = features)
 
 # # define subsets for training, testing, validation
 
-# In[301]:
+# In[51]:
 
 
-frac_train, frac_val, frac_test = 0.4,0.4,0.2
+select_class = select_ellis
+#select_class = select_disks_dd
+#select_class = select_disks_bd
+#select_class = select_irre
 
-rnd = np.random.random(len(cat))
+cat_class = cat.copy()
 
-cat_train = cat.loc[rnd <=frac_train]
-cat_val = cat.loc[((frac_train < rnd) & (rnd<frac_train+frac_val))]
-cat_test = cat.loc[frac_train+frac_val <= rnd]
+cat_class['gal_class'] = 0
+cat_class.loc[select_class, 'gal_class']=1
+
+
+# In[52]:
+
+
+frac_train, frac_valid, frac_test = 0.5,0.5,0.0
+
+rnd = np.random.random(len(cat_class))
+
+cat_train = cat_class.loc[rnd <=frac_train]
+cat_valid = cat_class.loc[((frac_train < rnd) & (rnd<frac_train+frac_valid))]
+cat_test = cat_class.loc[frac_train+frac_valid <= rnd]
 
 #len(cat_train)/len(cat), len(cat_val)/len(cat), len(cat_test)/len(cat)
 
 
+# In[53]:
+
+
+len(cat_test)
+
+
 # # initialize data matrix X
 
-# In[302]:
-
-
-#list(cat)
-
-
-# In[303]:
+# In[54]:
 
 
 X_train = cat_train[features].values
 Y_train = cat_train['gal_class']
 
-X_test = cat_test[features].values
-Y_test = cat_test['gal_class']
+X_valid = cat_valid[features].values
+Y_valid = cat_valid['gal_class']
 
 
-# In[310]:
+# In[ ]:
+
+
+
+
+
+# In[55]:
+
+
+theta_ini
+
+
+# In[56]:
 
 
 5#for order in range(3):
 
-model = logistic_regression(X_train, Y_train, poly_order=1)
-#model.summary()
-model.fit()
+model = logistic_regression(X_train, Y_train, poly_order=2, verbose=1)
+model.summary()
+model.fit(theta_ini = -0.3 + 0.3*np.random.rand(model.Nfeature_model))
 #model.cost_train
-model.test(X_test, Y_test)
+model.performance(X_train, Y_train,'training')
+model.performance(X_valid, Y_valid,'validation')
 
-print(model.accuracy_test, model.accuracy_train)
 
-
-# In[311]:
+# In[46]:
 
 
 Ndat = 10000
@@ -417,18 +497,19 @@ f2 = -1+np.random.rand(Ndat)*8
 X_rand = np.concatenate((f1,f2)).reshape(Nfeature,Ndat).T
 
 
-# In[312]:
+# In[47]:
 
 
 Y_rand = model.predict(X_rand)
 
 
-# In[315]:
+# In[59]:
 
 
 plt.scatter(X_rand[:,0], X_rand[:,1], c=Y_rand, s=0.1)
 #plt.scatter(cat.rj, cat.nuvr, s=0.1, c='r')
-plt.scatter(cat[select_ellis==True].rj, cat[select_ellis==True].nuvr, s=0.1, c='r')
+plt.scatter(cat_class[select_class==False].rj, cat_class[select_class==False].nuvr, s=0.1, c='b')
+plt.scatter(cat_class[select_class==True].rj, cat_class[select_class==True].nuvr, s=0.1, c='r')
 #plt.scatter(cat[select_ellis==False].rj, cat[select_ellis==False].nuvr, s=0.1, c='b')
 #plt.scatter(cat[select_disks_dd==False].rj, cat[select_disks_dd==False].nuvr, s=0.1, c='b')
 
@@ -437,6 +518,6 @@ plt.scatter(cat[select_ellis==True].rj, cat[select_ellis==True].nuvr, s=0.1, c='
 
 # # convert notebook to python script and remove this command from script
 
-# In[313]:
+# In[24]:
 
 
