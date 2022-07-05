@@ -196,7 +196,7 @@ plt.show()
 
 # # define class
 
-# In[49]:
+# In[195]:
 
 
 from scipy.optimize import minimize,fmin_tnc, fmin_cg, fmin_bfgs, fmin_l_bfgs_b
@@ -366,9 +366,9 @@ class logistic_regression:
         Nfn = len(true_positive[false_negative==True])
 
         if self.verbose>0:
-            print('')
-            if dataset=='training': print('performance on training set:')
-            if dataset=='validation': print('performance on validation set:')
+            print('\n')
+            if dataset=='training': print('==== performance on training set ====')
+            if dataset=='validation': print('==== performance on validation set ====')
 
             print('')
             print('true positive: ',Ntp)
@@ -400,7 +400,7 @@ class logistic_regression:
 
 # # features used for cliassification
 
-# In[50]:
+# In[241]:
 
 
 features = ['rj', 'nuvr']
@@ -412,7 +412,7 @@ cat = cat.dropna(subset = features)
 
 # # define subsets for training, testing, validation
 
-# In[51]:
+# In[253]:
 
 
 select_class = select_ellis
@@ -426,7 +426,35 @@ cat_class['gal_class'] = 0
 cat_class.loc[select_class, 'gal_class']=1
 
 
-# In[52]:
+# ### make equal fraction of all classes
+
+# In[254]:
+
+
+cat_class0 = cat_class[cat_class.gal_class==0]
+cat_class1 = cat_class[cat_class.gal_class==1]
+
+Nclass0 = len(cat_class0)
+Nclass1 = len(cat_class1)
+
+Nclass_min = min(Nclass0, Nclass1)
+
+if(Nclass0>Nclass_min):
+    rnd = np.random.random(Nclass0)
+    cat_class0 = cat_class0[rnd <= Nclass_min/Nclass0]
+
+if(Nclass1>Nclass_min):
+    rnd = np.random.random(Nclass1)
+    cat_class1 = cat_class1[rnd <= Nclass_min/Nclass1]
+
+print(len(cat_class0), len(cat_class1))
+
+cat_class = pd.concat([cat_class0, cat_class1])
+
+
+# ### devide trainig and test sets
+
+# In[255]:
 
 
 frac_train, frac_valid, frac_test = 0.5,0.5,0.0
@@ -440,15 +468,15 @@ cat_test = cat_class.loc[frac_train+frac_valid <= rnd]
 #len(cat_train)/len(cat), len(cat_val)/len(cat), len(cat_test)/len(cat)
 
 
-# In[53]:
+# In[256]:
 
 
-len(cat_test)
+len(cat_valid)
 
 
 # # initialize data matrix X
 
-# In[54]:
+# In[257]:
 
 
 X_train = cat_train[features].values
@@ -464,29 +492,29 @@ Y_valid = cat_valid['gal_class']
 
 
 
-# In[55]:
-
-
-theta_ini
-
-
-# In[56]:
+# In[278]:
 
 
 5#for order in range(3):
 
-model = logistic_regression(X_train, Y_train, poly_order=2, verbose=1)
+model = logistic_regression(X_train, Y_train, poly_order=3, verbose=1)
 model.summary()
-model.fit(theta_ini = -0.3 + 0.3*np.random.rand(model.Nfeature_model))
+model.fit(theta_ini = -0.01 + 0.01*np.random.rand(model.Nfeature_model))
 #model.cost_train
 model.performance(X_train, Y_train,'training')
 model.performance(X_valid, Y_valid,'validation')
 
 
-# In[46]:
+# In[279]:
 
 
-Ndat = 10000
+Nfeature
+
+
+# In[283]:
+
+
+Ndat = 100000
 Nfeature = 2
 
 #random feature vectors for Ndat data points
@@ -497,27 +525,26 @@ f2 = -1+np.random.rand(Ndat)*8
 X_rand = np.concatenate((f1,f2)).reshape(Nfeature,Ndat).T
 
 
-# In[47]:
+# In[284]:
 
 
 Y_rand = model.predict(X_rand)
 
 
-# In[59]:
+# In[292]:
 
 
-plt.scatter(X_rand[:,0], X_rand[:,1], c=Y_rand, s=0.1)
-#plt.scatter(cat.rj, cat.nuvr, s=0.1, c='r')
+plt.scatter(X_rand[Y_rand==1][:,0], X_rand[Y_rand==1][:,1], s=1, c='lightgrey')
 plt.scatter(cat_class[select_class==False].rj, cat_class[select_class==False].nuvr, s=0.1, c='b')
 plt.scatter(cat_class[select_class==True].rj, cat_class[select_class==True].nuvr, s=0.1, c='r')
-#plt.scatter(cat[select_ellis==False].rj, cat[select_ellis==False].nuvr, s=0.1, c='b')
-#plt.scatter(cat[select_disks_dd==False].rj, cat[select_disks_dd==False].nuvr, s=0.1, c='b')
+
+plt.show()
 
 
 # # convergence tests
 
 # # convert notebook to python script and remove this command from script
 
-# In[24]:
+# In[ ]:
 
 
