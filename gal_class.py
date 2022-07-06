@@ -196,7 +196,7 @@ plt.show()
 
 # # define class
 
-# In[195]:
+# In[324]:
 
 
 from scipy.optimize import minimize,fmin_tnc, fmin_cg, fmin_bfgs, fmin_l_bfgs_b
@@ -360,10 +360,10 @@ class logistic_regression:
         true_negative =  (Y_in==0) & (Y_model==0)
         false_negative =  (Y_in==0) & (Y_model==1)
 
-        Ntp = len(true_positive[true_positive==True])
-        Nfp = len(true_positive[false_positive==True])
-        Ntn = len(true_positive[true_negative==True])
-        Nfn = len(true_positive[false_negative==True])
+        TP = len(true_positive[true_positive==True])
+        FP = len(false_positive[false_positive==True])
+        TN = len(true_negative[true_negative==True])
+        FN = len(false_negative[false_negative==True])
 
         if self.verbose>0:
             print('\n')
@@ -371,16 +371,16 @@ class logistic_regression:
             if dataset=='validation': print('==== performance on validation set ====')
 
             print('')
-            print('true positive: ',Ntp)
-            print('false positive: ',Nfp)
-            print('true negative: ',Ntn)
-            print('false negative: ',Nfn)
+            print('true positive: ',TP)
+            print('false positive: ',FP)
+            print('true negative: ',TN)
+            print('false negative: ',FN)
             
 
         if dataset=='training':
-            if Ntp + Nfp > 0: self.precision_train = Ntp / (Ntp + Nfp)
-            if Ntp + Nfn > 0: self.recall_train = Ntp / (Ntp + Nfn)
-            if Ntp+Ntn+Nfp+Ntn > 0: self.accuracy_train = (Ntp+Ntn) / (Ntp+Ntn+Nfp+Ntn)        
+            if TP + FP > 0: self.precision_train = TP / (TP + FP)
+            if TP + FN > 0: self.recall_train = TP / (TP + FN)
+            if TP+TN+FP+TN > 0: self.accuracy_train = (TP+TN) / (TP+TN+FP+TN)        
             if self.verbose>0:
                 print('')
                 print('precision: ',self.precision_train)
@@ -388,9 +388,9 @@ class logistic_regression:
                 print('accuracy: ',self.accuracy_train)
 
         if dataset=='validation':
-            if Ntp + Nfp > 0: self.precision_valid = Ntp / (Ntp + Nfp)
-            if Ntp + Nfn > 0:self.recall_valid = Ntp / (Ntp + Nfn)
-            if Ntp+Ntn+Nfp+Ntn > 0: self.accuracy_valid = (Ntp+Ntn) / (Ntp+Ntn+Nfp+Ntn)        
+            if TP + FP > 0: self.precision_valid = TP / (TP + FP)
+            if TP + FN > 0:self.recall_valid = TP / (TP + FN)
+            if TP+TN+FP+TN > 0: self.accuracy_valid = (TP+TN) / (TP+TN+FP+TN)        
             if self.verbose>0:
                 print('')
                 print('precision: ',self.precision_valid)
@@ -400,11 +400,12 @@ class logistic_regression:
 
 # # features used for cliassification
 
-# In[241]:
+# In[637]:
 
 
 features = ['rj', 'nuvr']
 #features = ['rj', 'nuvr', 'rk']
+#features = ['rj', 'nuvr', 'rk', 'ur']
 #features = ['rj', 'nuvr', 'rk', 'ur', 'm_r']
 
 cat = cat.dropna(subset = features)
@@ -412,7 +413,7 @@ cat = cat.dropna(subset = features)
 
 # # define subsets for training, testing, validation
 
-# In[253]:
+# In[638]:
 
 
 select_class = select_ellis
@@ -428,7 +429,7 @@ cat_class.loc[select_class, 'gal_class']=1
 
 # ### make equal fraction of all classes
 
-# In[254]:
+# In[639]:
 
 
 cat_class0 = cat_class[cat_class.gal_class==0]
@@ -454,7 +455,7 @@ cat_class = pd.concat([cat_class0, cat_class1])
 
 # ### devide trainig and test sets
 
-# In[255]:
+# In[640]:
 
 
 frac_train, frac_valid, frac_test = 0.5,0.5,0.0
@@ -468,7 +469,7 @@ cat_test = cat_class.loc[frac_train+frac_valid <= rnd]
 #len(cat_train)/len(cat), len(cat_val)/len(cat), len(cat_test)/len(cat)
 
 
-# In[256]:
+# In[641]:
 
 
 len(cat_valid)
@@ -476,7 +477,7 @@ len(cat_valid)
 
 # # initialize data matrix X
 
-# In[257]:
+# In[642]:
 
 
 X_train = cat_train[features].values
@@ -492,12 +493,12 @@ Y_valid = cat_valid['gal_class']
 
 
 
-# In[278]:
+# In[650]:
 
 
 5#for order in range(3):
 
-model = logistic_regression(X_train, Y_train, poly_order=3, verbose=1)
+model = logistic_regression(X_train, Y_train, poly_order=2, verbose=1)
 model.summary()
 model.fit(theta_ini = -0.01 + 0.01*np.random.rand(model.Nfeature_model))
 #model.cost_train
@@ -505,13 +506,13 @@ model.performance(X_train, Y_train,'training')
 model.performance(X_valid, Y_valid,'validation')
 
 
-# In[279]:
+# In[651]:
 
 
 Nfeature
 
 
-# In[283]:
+# In[652]:
 
 
 Ndat = 100000
@@ -525,18 +526,23 @@ f2 = -1+np.random.rand(Ndat)*8
 X_rand = np.concatenate((f1,f2)).reshape(Nfeature,Ndat).T
 
 
-# In[284]:
+# In[653]:
 
 
 Y_rand = model.predict(X_rand)
 
 
-# In[292]:
+# In[654]:
 
 
-plt.scatter(X_rand[Y_rand==1][:,0], X_rand[Y_rand==1][:,1], s=1, c='lightgrey')
-plt.scatter(cat_class[select_class==False].rj, cat_class[select_class==False].nuvr, s=0.1, c='b')
-plt.scatter(cat_class[select_class==True].rj, cat_class[select_class==True].nuvr, s=0.1, c='r')
+fig,ax = plt.subplots(1,2, figsize=(10,4), sharex=True, sharey=True)
+
+
+ax[0].scatter(X_rand[Y_rand==1][:,0], X_rand[Y_rand==1][:,1], s=5, c='lightgrey')
+ax[1].scatter(X_rand[Y_rand==1][:,0], X_rand[Y_rand==1][:,1], s=5, c='lightgrey')
+
+ax[0].scatter(cat_class[cat_class.gal_class==0].rj, cat_class[cat_class.gal_class==0].nuvr, s=0.1, c='b')
+ax[1].scatter(cat_class[cat_class.gal_class==1].rj, cat_class[cat_class.gal_class==1].nuvr, s=0.1, c='r')
 
 plt.show()
 
@@ -545,6 +551,6 @@ plt.show()
 
 # # convert notebook to python script and remove this command from script
 
-# In[ ]:
+# In[315]:
 
 
