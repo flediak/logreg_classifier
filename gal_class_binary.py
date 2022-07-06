@@ -12,7 +12,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 import pandas as pd
-from LogRegClass import LogRegClass_binary
+from LogisticRegression import BinaryClass
 
 
 # # read data
@@ -181,207 +181,7 @@ plt.show()
 
 # # fit model to training data
 
-# # define class
-
 # In[13]:
-
-
-from scipy.optimize import minimize,fmin_tnc, fmin_cg, fmin_bfgs, fmin_l_bfgs_b
-
-class LogRegClass:
-    
-    def  __init__(self, X_train,Y_train ,**kwargs):
-
-        self.verbose=0
-        
-        self.X_train = X_train
-        self.Y_train = Y_train
-        
-        #set default values
-        self.Nfeature_in = self.X_train.shape[1]
-        
-        self.poly_order = 1
-    
-        self.optimizer = 'scipy_optimize'
-    
-        for key, value in kwargs.items():
-            if key == 'poly_order': self.poly_order = value
-            if key == 'verbose': self.verbose = value
-            
-        #re-scale input features
-        self.train_mean = self.X_train.T.mean(1)       
-        self.train_var = self.X_train.T.var(1)
-        
-        self.X_train = (self.X_train - self.train_mean)/ self.train_var
-        
-        ### add higher orders
-        self.X_train = self._add_higher_orders(self.X_train,self.poly_order)
-        
-        ### add 1 as first column bias terms
-        self.X_train = np.insert(self.X_train,0,1, axis=1)
-        
-        self.Nfeature_model = self.X_train.shape[1]
-            
-        #model parameters
-        self.theta_ini = np.full(self.Nfeature_model, 0)
-        self.theta_fit = np.full(self.Nfeature_model, np.nan)
-        
-        #cost
-        self.cost_train = np.nan
-        self.cost_valid = np.nan
-
-        #performance
-        self.precision_train = np.nan
-        self.precision_valid = np.nan
-        
-        self.recall_train = np.nan
-        self.recall_valid = np.nan
-
-        self.accuracy_train = np.nan
-        self.accuracy_valid = np.nan
-
-        
-    def _add_higher_orders(self,X_in,max_order):
-
-        X_out = X_in.copy()
-
-        Nfeature_in = X_out.shape[1]
-
-        for n in range(1,max_order):
-
-            exponent = n+1
-
-            for i in range(Nfeature_in):
-                Nfeature_tmp = X_out.shape[1]
-                Xn = X_out[:,i]**exponent
-                X_out = np.insert(X_out,Nfeature_tmp,Xn, axis=1)
-
-        return X_out
-            
-            
-    def summary(self):        
-        print('polynomial order: ', self.poly_order)
-        print('number of input features: ', self.Nfeature_in)
-        print('number of model parameters: ', self.Nfeature_model)
-        
-        
-    def _sigmoid(self,X,theta):
-        
-        z = np.matmul(X,theta.T)
-        
-        y = np.zeros(len(z))
-
-        # for numerical stability
-        z_lo = z<-10
-        z_hi = z>10
-        z_mid = (z>=-10) & (z<=10)
-
-        y[z_lo] = 10**-6
-        y[z_hi] = 1-10**-6
-        y[z_mid] = (1+np.exp(-z[z_mid]))**-1
-
-        return y
-    
-    def _hypothesis(self,X,theta):
-        return self._sigmoid(X, theta) 
-        
-        
-    def _cost_function(self,theta, X, Y):
-        
-        m = X.shape[0]
-        h = self._hypothesis(X,theta)
-        return -(1/m)*np.sum(Y*np.log(h) + (1-Y)*np.log(1-h))
-
-    
-    def _gradient(self,theta, X, Y):
-        m = X.shape[0]
-        h = self._hypothesis(X,theta)
-        return (1/m) * np.dot(X.T, (h-Y))
-    
-    
-    def fit(self,**kwargs):
-        
-        for key, value in kwargs.items():
-            if key == 'optimizer': self.optimizer = value
-            if key == 'theta_ini': self.theta_ini = value
-                
-        opt_weights = fmin_tnc(
-            disp=0,
-            func=self._cost_function, x0=self.theta_ini, fprime=self._gradient,
-            args=(self.X_train, self.Y_train)
-        )
-        
-        self.theta_fit = opt_weights[0]
-        
-        self.cost_train = self._cost_function(self.theta_fit, self.X_train, self.Y_train)
-
-        
-    def predict(self,X_in):
-        
-        #re-scale input features
-        X_in = (X_in - self.train_mean)/ self.train_var
-        
-        ### add higher orders
-        X_in = self._add_higher_orders(X_in,self.poly_order)
-        
-        ### add 1 as first column bias terms
-        X_in = np.insert(X_in,0,1, axis=1)
-        
-        sig = self._sigmoid(X_in,self.theta_fit)
-        Y_out = np.zeros(len(sig))
-        Y_out[sig>0.5]=1
-
-        return Y_out
-
-        
-    def performance(self, X_in, Y_in, dataset):
-        
-        Y_model = self.predict(X_in)
-        
-        true_positive = (Y_in==1) & (Y_model==1)
-        false_positive = (Y_in==1) & (Y_model==0)
-        true_negative =  (Y_in==0) & (Y_model==0)
-        false_negative =  (Y_in==0) & (Y_model==1)
-
-        TP = len(true_positive[true_positive==True])
-        FP = len(false_positive[false_positive==True])
-        TN = len(true_negative[true_negative==True])
-        FN = len(false_negative[false_negative==True])
-
-        if self.verbose>0:
-            print('\n')
-            if dataset=='training': print('==== performance on training set ====')
-            if dataset=='validation': print('==== performance on validation set ====')
-
-            print('')
-            print('true positive: ',TP)
-            print('false positive: ',FP)
-            print('true negative: ',TN)
-            print('false negative: ',FN)
-            
-
-        if dataset=='training':
-            if TP + FP > 0: self.precision_train = TP / (TP + FP)
-            if TP + FN > 0: self.recall_train = TP / (TP + FN)
-            if TP+TN+FP+TN > 0: self.accuracy_train = (TP+TN) / (TP+TN+FP+TN)        
-            if self.verbose>0:
-                print('')
-                print('precision: ',self.precision_train)
-                print('recall: ',self.recall_train)
-                print('accuracy: ',self.accuracy_train)
-
-        if dataset=='validation':
-            if TP + FP > 0: self.precision_valid = TP / (TP + FP)
-            if TP + FN > 0:self.recall_valid = TP / (TP + FN)
-            if TP+TN+FP+TN > 0: self.accuracy_valid = (TP+TN) / (TP+TN+FP+TN)        
-            if self.verbose>0:
-                print('')
-                print('precision: ',self.precision_valid)
-                print('recall: ',self.recall_valid)
-                print('accuracy: ',self.accuracy_valid)
-
-
-# In[14]:
 
 
 def uniform_class_size(cat_in):
@@ -405,7 +205,7 @@ def uniform_class_size(cat_in):
     
 
 
-# In[15]:
+# In[14]:
 
 
 def prep_XY(cat, select_class, features, **kwargs):
@@ -446,7 +246,7 @@ def prep_XY(cat, select_class, features, **kwargs):
     return X_train, Y_train, X_valid, Y_valid
 
 
-# In[16]:
+# In[15]:
 
 
 class results:
@@ -465,7 +265,7 @@ class results:
 
 # # select elliptical galaxies in color-color plane
 
-# In[17]:
+# In[16]:
 
 
 gal_type = 'ellis'
@@ -478,7 +278,7 @@ vpoly_orders = [1,2,3,4]
 
 # ### fit model and plot decision bounderies
 
-# In[18]:
+# In[17]:
 
 
 Ndat = 100000
@@ -500,13 +300,13 @@ X_rand = np.concatenate((f1,f2)).reshape(Nfeature,Ndat).T
 len(cat[select_ellis==True]), len(cat[select_ellis==False]), len(cat)
 
 
-# In[19]:
+# In[18]:
 
 
 np.log(10**-6)
 
 
-# In[20]:
+# In[19]:
 
 
 fig,ax = plt.subplots(2,len(vpoly_orders), figsize=(16,8), sharex=True, sharey=True)
@@ -524,7 +324,7 @@ for i in range(len(vpoly_orders)):
 
     X_train, Y_train, X_valid, Y_valid = prep_XY(cat, select_class, vfeatures)
 
-    model = LogRegClass_binary(X_train, Y_train, poly_order=o, verbose=0)
+    model = BinaryClass(X_train, Y_train, poly_order=o, verbose=0)
     model.fit(theta_ini = -0.01 + 0.01*np.random.rand(model.Nfeature_model))
 
     Y_rand = model.predict(X_rand)
@@ -558,14 +358,14 @@ plt.show()
 
 # ### model performance for 2nd order polynomial
 
-# In[21]:
+# In[20]:
 
 
 vfeatures = ['rj', 'nuvr', 'q_app']
 
 X_train, Y_train, X_valid, Y_valid = prep_XY(cat, select_ellis, vfeatures, uni_class=True)
 
-model = LogRegClass_binary(X_train, Y_train, poly_order=2, verbose=1)
+model = BinaryClass(X_train, Y_train, poly_order=2, verbose=1)
 model.summary()
 model.fit(theta_ini = -0.01 + 0.01*np.random.rand(model.Nfeature_model))
 
@@ -580,7 +380,7 @@ model.performance(X_valid, Y_valid,'validation')
 
 # ### galaxy types that are classified as ellipticals
 
-# In[22]:
+# In[21]:
 
 
 ellis = cat[select_ellis].dropna()
@@ -607,7 +407,7 @@ print(len(X_irre[Y_irre==1]), 'irregular')
 
 # # test performance for different, galaxy types|, features, polynomial orders
 
-# In[23]:
+# In[22]:
 
 
 gal_type1 = 'ellis'
@@ -627,7 +427,7 @@ vfeatures = [features1,features2,features3, features4]
 vpoly_orders = [1,2,3,4,5]
 
 
-# In[24]:
+# In[23]:
 
 
 vres_gt = []
@@ -651,7 +451,7 @@ for gt in vgal_type:
 
         for o in vpoly_orders:
 
-            model = LogRegClass_binary(X_train, Y_train, poly_order=o, verbose=0)
+            model = BinaryClass(X_train, Y_train, poly_order=o, verbose=0)
             model.fit(theta_ini = -0.01 + 0.01*np.random.rand(model.Nfeature_model))
 
             res.Nparams.append(len(model.theta_fit))
@@ -676,7 +476,7 @@ for gt in vgal_type:
 
 # ### plot results
 
-# In[25]:
+# In[24]:
 
 
 fig, ax = plt.subplots(3,4,figsize=(15,9), sharex='col', sharey='row')
@@ -725,6 +525,12 @@ plt.show()
 
 # # convert notebook to python script and remove this command from script
 
-# In[27]:
+# In[25]:
 
 
+get_ipython().system('jupyter-nbconvert --to script gal_class.ipynb')
+
+with open('gal_class_binary.py', 'r') as f:
+    lines = f.readlines()
+with open('gal_class_binary.py', 'w') as f:
+    for line in lines:

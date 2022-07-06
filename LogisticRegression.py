@@ -2,7 +2,7 @@ from scipy.optimize import minimize,fmin_tnc, fmin_cg, fmin_bfgs, fmin_l_bfgs_b
 
 import numpy as np
 
-class binary_classification:
+class BinaryClass:
     
     def  __init__(self, X_train,Y_train ,**kwargs):
 
