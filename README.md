@@ -1,6 +1,6 @@
 # logreg_classifier
 A simple vectorized python code for binary classification based logistic regression.
-The number number of input features and the order for the decision boundary polynomial are variable.
+The number of input features and the order for the decision boundary polynomial are variable.
 
 
 # example
