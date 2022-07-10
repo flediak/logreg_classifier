@@ -4,7 +4,7 @@ import numpy as np
 
 class BinaryClass:
     
-    def  __init__(self, X_train,Y_train ,**kwargs):
+    def  __init__(self, X_train, Y_train ,**kwargs):
 
         self.verbose=0
         
@@ -160,7 +160,12 @@ class BinaryClass:
         self.cost_train = self._cost_function(self.theta_fit, self.X_train, self.Y_train)
 
         
-    def predict(self,X_in):
+    def predict(self, X_in ,**kwargs):
+        
+        binary = False
+        for key, value in kwargs.items():
+            if key == 'binary': binary = value
+
         
         #re-scale input features
         X_in = (X_in - self.train_mean)/ self.train_var
@@ -172,15 +177,19 @@ class BinaryClass:
         X_in = np.insert(X_in,0,1, axis=1)
         
         sig = self._sigmoid(X_in,self.theta_fit)
-        Y_out = np.zeros(len(sig))
-        Y_out[sig>0.5]=1
+
+        if binary:
+            Y_out = np.zeros(len(sig))
+            Y_out[sig>0.5]=1
+        else:
+            Y_out = sig
 
         return Y_out
 
         
     def performance(self, X_in, Y_in, dataset):
         
-        Y_model = self.predict(X_in)
+        Y_model = self.predict(X_in, binary=True)
         
         true_positive = (Y_in==1) & (Y_model==1)
         false_positive = (Y_in==1) & (Y_model==0)
