@@ -18,10 +18,17 @@ class BinaryClass:
     
         self.optimizer = 'scipy_optimize'
     
+        self.uniform_class_size = True
+    
         for key, value in kwargs.items():
             if key == 'poly_order': self.poly_order = value
             if key == 'verbose': self.verbose = value
+            if key == 'uniform_class_size': self.uniform_class_size = value
             
+        # re-size catalogue to have similar size of examples for each class
+        if self.uniform_class_size :
+            self.X_train, self.Y_train = self._uniform_class_size(self.X_train, self.Y_train)
+        
         #re-scale input features
         self.train_mean = self.X_train.T.mean(1)       
         self.train_var = self.X_train.T.var(1)
@@ -72,6 +79,29 @@ class BinaryClass:
 
         return X_out
             
+            
+    def _uniform_class_size(self,X_in, Y_in):
+
+        Nclass0 = len(Y_in[Y_in==0])
+        Nclass1 = len(Y_in[Y_in==1])
+
+        rnd = np.random.random(len(Y_in))
+
+        if Nclass0 > Nclass1:    
+            select0 = (Y_in==0) & (rnd < Nclass1/Nclass0)
+            select1 = (Y_in==1)
+        else:
+            select0 = (Y_in==0)
+            select1 = (Y_in==1) & (rnd < Nclass0/Nclass1)
+
+        Y0 = Y_in[select0]
+        Y1 = Y_in[select1]
+
+        Y_out = np.concatenate([Y_in[select0], Y_in[select1]])
+        X_out = np.concatenate([X_in[select0], X_in[select1]])
+
+        return X_out, Y_out
+    
             
     def summary(self):        
         print('polynomial order: ', self.poly_order)

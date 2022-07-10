@@ -1,12 +1,19 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# In[27]:
+
+
+get_ipython().run_line_magic('load_ext', 'autoreload')
+get_ipython().run_line_magic('autoreload', '2')
+
+
 # # references:
 # - https://towardsdatascience.com/introduction-to-logistic-regression-66248243c148
 # - https://towardsdatascience.com/logistic-regression-with-python-using-optimization-function-91bd2aee79b
 # - https://fa.bianp.net/blog/2013/numerical-optimizers-for-logistic-regression/
 
-# In[1]:
+# In[28]:
 
 
 import numpy as np
@@ -17,7 +24,7 @@ from LogisticRegression import BinaryClass
 
 # # read data
 
-# In[2]:
+# In[3]:
 
 
 fname_cosmos = '~/Documents/IA/data/COSMOS/matched_ZEST_L15_ACS-GC_v1.cvs.bz2'
@@ -45,7 +52,7 @@ cat = cat[cat.rcut_pix<750]
 
 # # volume limited samples
 
-# In[3]:
+# In[4]:
 
 
 z_min, z_max = 0.2, 2.0
@@ -54,7 +61,7 @@ mag_min, mag_max = -25,24
 
 # ### intrinsic size cut
 
-# In[4]:
+# In[5]:
 
 
 ang_psf = 0.085 # psf angle in arcsec
@@ -64,13 +71,13 @@ ang_min = ang_psf*1.0 # min angle in arcsec
 app_mag_max=24
 
 
-# In[5]:
+# In[6]:
 
 
 from colossus.cosmology import cosmology
 
 
-# In[6]:
+# In[7]:
 
 
 z_rcut = z_max
@@ -87,7 +94,7 @@ cat = cat[cat.rcut_arcsec>0]
 cat['rcut_kpc'] = cosmo.angularDiameterDistance(cat.z.values)*cat.rcut_arcsec*funit
 
 
-# In[7]:
+# In[8]:
 
 
 print(len(cat))
@@ -110,7 +117,7 @@ print(len(cat))
 
 # ### disks (disk dominated)
 
-# In[8]:
+# In[9]:
 
 
 type_ZEST = 2 # late type
@@ -122,7 +129,7 @@ select_disks_dd = (cat.type_ZEST==type_ZEST )                    & ((cat.bulg ==
 
 # ### disks (bulge dominated)
 
-# In[9]:
+# In[10]:
 
 
 type_ZEST = 2 # late type
@@ -134,7 +141,7 @@ select_disks_bd = (cat.type_ZEST==type_ZEST )                    & ((cat.bulg ==
 
 # ### ellipticals
 
-# In[10]:
+# In[11]:
 
 
 type_ZEST = 1 # early type
@@ -146,7 +153,7 @@ select_ellis = (cat.type_ZEST==type_ZEST )                    & ((cat.bulg == bu
 
 # ### iregular
 
-# In[11]:
+# In[12]:
 
 
 type_ZEST = 3 # late type
@@ -156,7 +163,7 @@ irre1, irre2 = 9,9 # no values
 select_irre = (cat.type_ZEST==type_ZEST )                    & ((cat.bulg == bulg1) | (cat.bulg == bulg2) )                    & ((cat.irre == irre1) | (cat.irre == irre2) )
 
 
-# In[12]:
+# In[13]:
 
 
 fig,ax = plt.subplots(1,4, figsize=(20,5))
@@ -181,39 +188,10 @@ plt.show()
 
 # # fit model to training data
 
-# In[13]:
+# In[30]:
 
 
-def uniform_class_size(cat_in):
-    cat_class0 = cat_in[cat_in.gal_class==0]
-    cat_class1 = cat_in[cat_in.gal_class==1]
-
-    Nclass0 = len(cat_class0)
-    Nclass1 = len(cat_class1)
-
-    Nclass_min = min(Nclass0, Nclass1)
-
-    if(Nclass0>Nclass_min):
-        rnd = np.random.random(Nclass0)
-        cat_class0 = cat_class0[rnd <= Nclass_min/Nclass0]
-
-    if(Nclass1>Nclass_min):
-        rnd = np.random.random(Nclass1)
-        cat_class1 = cat_class1[rnd <= Nclass_min/Nclass1]
-
-    return pd.concat([cat_class0, cat_class1])
-    
-
-
-# In[14]:
-
-
-def prep_XY(cat, select_class, features, **kwargs):
-        
-    uni_class = True
-    
-    for key, value in kwargs.items():
-        if key == 'uni_class': uni_class = value
+def prep_XY(cat, select_class, features):
 
     cat_class = cat.copy()
 
@@ -222,11 +200,6 @@ def prep_XY(cat, select_class, features, **kwargs):
 
     cat_class['gal_class'] = 0
     cat_class.loc[select_class, 'gal_class']=1
-
-
-    # ======== make equal fraction of all classes ========
-    if uni_class: cat_class = uniform_class_size(cat_class)
-
 
     # ======== devide trainig and test sets ========
     frac_train, frac_valid, frac_test = 0.5,0.5,0.0
@@ -246,7 +219,7 @@ def prep_XY(cat, select_class, features, **kwargs):
     return X_train, Y_train, X_valid, Y_valid
 
 
-# In[15]:
+# In[31]:
 
 
 class results:
@@ -265,7 +238,7 @@ class results:
 
 # # select elliptical galaxies in color-color plane
 
-# In[16]:
+# In[17]:
 
 
 gal_type = 'ellis'
@@ -278,7 +251,7 @@ vpoly_orders = [1,2,3,4]
 
 # ### fit model and plot decision bounderies
 
-# In[17]:
+# In[18]:
 
 
 Ndat = 100000
@@ -300,13 +273,13 @@ X_rand = np.concatenate((f1,f2)).reshape(Nfeature,Ndat).T
 len(cat[select_ellis==True]), len(cat[select_ellis==False]), len(cat)
 
 
-# In[18]:
+# In[19]:
 
 
 np.log(10**-6)
 
 
-# In[19]:
+# In[29]:
 
 
 fig,ax = plt.subplots(2,len(vpoly_orders), figsize=(16,8), sharex=True, sharey=True)
@@ -358,29 +331,25 @@ plt.show()
 
 # ### model performance for 2nd order polynomial
 
-# In[20]:
+# In[ ]:
 
 
 vfeatures = ['rj', 'nuvr', 'q_app']
 
 X_train, Y_train, X_valid, Y_valid = prep_XY(cat, select_ellis, vfeatures, uni_class=True)
 
-model = BinaryClass(X_train, Y_train, poly_order=2, verbose=1)
+model = BinaryClass(X_train, Y_train, poly_order=2, verbose=1, uniform_class_size=True)
 model.summary()
 model.fit(theta_ini = -0.01 + 0.01*np.random.rand(model.Nfeature_model))
 
 print('\n #### same sample size for all classes (as used in training)####')
-X_train, Y_train, X_valid, Y_valid = prep_XY(cat, select_ellis, vfeatures, uni_class=True)
-model.performance(X_valid, Y_valid,'validation')
-
-print('\n #### different sample size for different classes (as in input catalogue)####')
-X_train, Y_train, X_valid, Y_valid = prep_XY(cat, select_ellis, vfeatures, uni_class=False)
+X_train, Y_train, X_valid, Y_valid = prep_XY(cat, select_ellis, vfeatures)
 model.performance(X_valid, Y_valid,'validation')
 
 
 # ### galaxy types that are classified as ellipticals
 
-# In[21]:
+# In[ ]:
 
 
 ellis = cat[select_ellis].dropna()
@@ -405,9 +374,9 @@ print(len(X_disks_bd[Y_disks_bd==1]), 'disks (bulge dominated)')
 print(len(X_irre[Y_irre==1]), 'irregular')
 
 
-# # test performance for different, galaxy types|, features, polynomial orders
+# # test performance for different, galaxy types, features, polynomial orders
 
-# In[22]:
+# In[ ]:
 
 
 gal_type1 = 'ellis'
@@ -427,7 +396,7 @@ vfeatures = [features1,features2,features3, features4]
 vpoly_orders = [1,2,3,4,5]
 
 
-# In[23]:
+# In[ ]:
 
 
 vres_gt = []
@@ -447,7 +416,7 @@ for gt in vgal_type:
 
         res = results(ft, gt)
 
-        X_train, Y_train, X_valid, Y_valid = prep_XY(cat, select_class, ft, uni_class=True)
+        X_train, Y_train, X_valid, Y_valid = prep_XY(cat, select_class, ft)
 
         for o in vpoly_orders:
 
@@ -476,7 +445,7 @@ for gt in vgal_type:
 
 # ### plot results
 
-# In[24]:
+# In[ ]:
 
 
 fig, ax = plt.subplots(3,4,figsize=(15,9), sharex='col', sharey='row')
@@ -525,12 +494,6 @@ plt.show()
 
 # # convert notebook to python script and remove this command from script
 
-# In[25]:
+# In[ ]:
 
 
-get_ipython().system('jupyter-nbconvert --to script gal_class.ipynb')
-
-with open('gal_class_binary.py', 'r') as f:
-    lines = f.readlines()
-with open('gal_class_binary.py', 'w') as f:
-    for line in lines:
