@@ -45,7 +45,7 @@ class BinaryClass:
             
         #model parameters
         self.theta_ini = np.full(self.Nfeature_model, 0)
-        self.theta_fit = np.full(self.Nfeature_model, np.nan)
+        self.theta_fit = np.full(self.Nfeature_model, 0)
         
         #cost
         self.cost_train = np.nan
@@ -108,23 +108,29 @@ class BinaryClass:
         print('number of input features: ', self.Nfeature_in)
         print('number of model parameters: ', self.Nfeature_model)
         
+        print('size of training sample (class 0+1): ', len(self.Y_train))
+        print('size of training sample (class 0): ', len(self.Y_train[self.Y_train==0]))
+        print('size of training sample (class 1): ', len(self.Y_train[self.Y_train==1]))
+        
+        
         
     def _sigmoid(self,X,theta):
         
         z = np.matmul(X,theta.T)
         
-        y = np.zeros(len(z))
+        sig = np.zeros(len(z))
 
         # for numerical stability
-        z_lo = z<-10
-        z_hi = z>10
-        z_mid = (z>=-10) & (z<=10)
+        zlim = 10
+        lo = z < -zlim
+        hi = z > zlim
+        mid = (z>=-zlim) & (z<=zlim)
 
-        y[z_lo] = 10**-6
-        y[z_hi] = 1-10**-6
-        y[z_mid] = (1+np.exp(-z[z_mid]))**-1
+        sig[mid] = (1+np.exp(-z[mid]))**-1
+        sig[lo] = sig[mid].min()
+        sig[hi] = sig[mid].max()
 
-        return y
+        return sig
     
     def _hypothesis(self,X,theta):
         return self._sigmoid(X, theta) 
@@ -133,7 +139,9 @@ class BinaryClass:
     def _cost_function(self,theta, X, Y):
         
         m = X.shape[0]
+           
         h = self._hypothesis(X,theta)
+        
         return -(1/m)*np.sum(Y*np.log(h) + (1-Y)*np.log(1-h))
 
     
