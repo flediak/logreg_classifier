@@ -155,8 +155,8 @@ class BinaryClass:
         
         for key, value in kwargs.items():
             if key == 'optimizer': self.optimizer = value
-            if key == 'theta_ini': self.theta_ini = value
-                
+            if key == 'theta_ini': self.theta_ini = np.array(value)
+
         opt_weights = fmin_tnc(
             disp=0,
             func=self._cost_function, x0=self.theta_ini, fprime=self._gradient,
@@ -199,15 +199,10 @@ class BinaryClass:
         
         Y_model = self.predict(X_in, binary=True)
         
-        true_positive = (Y_in==1) & (Y_model==1)
-        false_positive = (Y_in==1) & (Y_model==0)
-        true_negative =  (Y_in==0) & (Y_model==0)
-        false_negative =  (Y_in==0) & (Y_model==1)
-
-        TP = len(true_positive[true_positive==True])
-        FP = len(false_positive[false_positive==True])
-        TN = len(true_negative[true_negative==True])
-        FN = len(false_negative[false_negative==True])
+        TP = np.sum((Y_in==1) & (Y_model==1))
+        FP = np.sum((Y_in==0) & (Y_model==1))
+        TN =  np.sum((Y_in==0) & (Y_model==0))
+        FN =  np.sum((Y_in==1) & (Y_model==0))
 
         if self.verbose>0:
             print('\n')
