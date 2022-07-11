@@ -1,6 +1,7 @@
 from scipy.optimize import minimize,fmin_tnc, fmin_cg, fmin_bfgs, fmin_l_bfgs_b
-
 import numpy as np
+from matplotlib import pyplot as plt
+
 
 class BinaryClass:
     
@@ -235,3 +236,130 @@ class BinaryClass:
                 print('precision: ',self.precision_valid)
                 print('recall: ',self.recall_valid)
                 print('accuracy: ',self.accuracy_valid)
+
+
+
+
+
+class MultiClass:
+    
+    def  __init__(self, X_train, Y_train ,**kwargs):
+        
+        self.verbose=0
+        self.poly_order = 1
+        self.uniform_class_size = True
+        
+        for key, value in kwargs.items():
+            if key == 'poly_order': self.poly_order = value
+            if key == 'verbose': self.verbose = value
+            if key == 'uniform_class_size': self.uniform_class_size = value
+
+        self.X_train = X_train
+        self.Y_train = Y_train
+        
+        self.Nfeature_in = self.X_train.shape[1]
+        
+        self.Nclass = self.Y_train.max()+1#add +1 because classes are counted starting from zero
+
+        self.optimizer = 'scipy_optimize'
+    
+        self.model_vec = []# for storing binary classification models for each class from One-vs-All approach
+
+        
+        # confusion matrix
+        self.CoMa = np.zeros(self.Nclass**2).reshape(self.Nclass,self.Nclass)
+
+
+    def fit(self,**kwargs):
+        
+        for key, value in kwargs.items():
+            if key == 'optimizer': self.optimizer = value
+            if key == 'theta_ini': self.theta_ini = value
+
+        for i in range(self.Nclass):
+            Y_train_i = np.where(self.Y_train==i, 1, 0)
+            model = BinaryClass(
+                self.X_train, Y_train_i,
+                poly_order=self.poly_order,
+                verbose=self.verbose,
+                uniform_class_size=self.uniform_class_size
+            )
+            
+            model.fit(theta_ini = -0.1 + 0.1*np.random.rand(model.Nfeature_model))
+
+            self.model_vec.append(model)
+            
+            
+    def predict(self, X_in):
+        
+        Nrow = X_in.shape[0]
+
+        sigmoid_max = np.zeros(Nrow)
+        Y_out = np.zeros(Nrow)
+
+        for iclass in range(len(self.model_vec)):
+            
+            sigmoid = self.model_vec[iclass].predict(X_in, binary=False)
+            select = sigmoid > sigmoid_max    
+            sigmoid_max[select] = sigmoid[select]
+            Y_out[select] = iclass
+        
+        return Y_out
+    
+    def _get_coma(self, X_in, Y_in):
+
+        Y_model = self.predict(X_in)
+
+        self.CoMa = np.zeros(self.Nclass**2).reshape(self.Nclass,self.Nclass)
+
+        for iclass in range(self.CoMa.shape[0]):
+            for jclass in range(self.CoMa.shape[1]):
+                self.CoMa[iclass, jclass] = np.sum((Y_in == iclass) & (Y_model == jclass))
+        
+    def plot_confusion_matrix(self, X_in, Y_in):
+        
+        self._get_coma(X_in, Y_in)
+        
+        plt.imshow(self.CoMa, interpolation=None, cmap='jet')
+        plt.colorbar()
+        plt.xlabel('predicted class')
+        plt.ylabel('true class')
+        plt.show()
+    
+        
+    def performance(self, X_in, Y_in):
+        
+        Y_model = self.predict(X_in)
+
+        for iclass in range(self.CoMa.shape[0]):
+
+            TP = np.sum((Y_in==iclass) & (Y_model==iclass))
+            FP = np.sum((Y_in!=iclass) & (Y_model==iclass))
+            TN =  np.sum((Y_in!=iclass) & (Y_model!=iclass))
+            FN =  np.sum((Y_in==iclass) & (Y_model!=iclass))
+
+            precision = np.nan
+            recall = np.nan
+            accuracy = np.nan
+            
+            if TP + FP > 0: precision = TP / (TP + FP)
+            if TP + FN > 0: recall = TP / (TP + FN)
+            if TP+TN+FP+TN > 0: accuracy = (TP+TN) / (TP+TN+FP+TN)        
+            
+            print('class:',iclass)
+            print('precision:\t',np.round(precision,3))
+            print('recall:   \t',np.round(recall,3))
+            print('accuracy: \t',np.round(accuracy,3))
+            print('')
+        
+
+
+
+
+
+
+
+
+
+
+
