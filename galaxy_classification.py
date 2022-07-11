@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[36]:
+# In[1]:
 
 
 get_ipython().run_line_magic('load_ext', 'autoreload')
@@ -13,7 +13,7 @@ get_ipython().run_line_magic('autoreload', '2')
 # - https://towardsdatascience.com/logistic-regression-with-python-using-optimization-function-91bd2aee79b
 # - https://fa.bianp.net/blog/2013/numerical-optimizers-for-logistic-regression/
 
-# In[37]:
+# In[2]:
 
 
 import numpy as np
@@ -24,7 +24,7 @@ from LogisticRegression import BinaryClass
 
 # # read data
 
-# In[38]:
+# In[3]:
 
 
 fname_cosmos = '~/Documents/IA/data/COSMOS/matched_ZEST_L15_ACS-GC_v1.cvs.bz2'
@@ -52,7 +52,7 @@ cat = cat[cat.rcut_pix<750]
 
 # # volume limited samples
 
-# In[39]:
+# In[4]:
 
 
 z_min, z_max = 0.2, 2.0
@@ -61,7 +61,7 @@ mag_min, mag_max = -25,24
 
 # ### intrinsic size cut
 
-# In[40]:
+# In[5]:
 
 
 ang_psf = 0.085 # psf angle in arcsec
@@ -71,13 +71,13 @@ ang_min = ang_psf*1.0 # min angle in arcsec
 app_mag_max=24
 
 
-# In[41]:
+# In[6]:
 
 
 from colossus.cosmology import cosmology
 
 
-# In[42]:
+# In[7]:
 
 
 z_rcut = z_max
@@ -94,7 +94,7 @@ cat = cat[cat.rcut_arcsec>0]
 cat['rcut_kpc'] = cosmo.angularDiameterDistance(cat.z.values)*cat.rcut_arcsec*funit
 
 
-# In[43]:
+# In[8]:
 
 
 print(len(cat))
@@ -117,7 +117,7 @@ print(len(cat))
 
 # ### disks (disk dominated)
 
-# In[44]:
+# In[9]:
 
 
 type_ZEST = 2 # late type
@@ -129,7 +129,7 @@ select_disks_dd = (cat.type_ZEST==type_ZEST )                    & ((cat.bulg ==
 
 # ### disks (bulge dominated)
 
-# In[45]:
+# In[10]:
 
 
 type_ZEST = 2 # late type
@@ -141,7 +141,7 @@ select_disks_bd = (cat.type_ZEST==type_ZEST )                    & ((cat.bulg ==
 
 # ### ellipticals
 
-# In[46]:
+# In[11]:
 
 
 type_ZEST = 1 # early type
@@ -153,7 +153,7 @@ select_ellis = (cat.type_ZEST==type_ZEST )                    & ((cat.bulg == bu
 
 # ### iregular
 
-# In[47]:
+# In[12]:
 
 
 type_ZEST = 3 # late type
@@ -163,7 +163,7 @@ irre1, irre2 = 9,9 # no values
 select_irre = (cat.type_ZEST==type_ZEST )                    & ((cat.bulg == bulg1) | (cat.bulg == bulg2) )                    & ((cat.irre == irre1) | (cat.irre == irre2) )
 
 
-# In[48]:
+# In[13]:
 
 
 fig,ax = plt.subplots(1,4, figsize=(20,5))
@@ -186,9 +186,9 @@ for ix in range(4):
 plt.show()
 
 
-# # fit model to training data
+# # fit binary model to training data
 
-# In[49]:
+# In[14]:
 
 
 def prep_XY(cat, select_class, features):
@@ -219,7 +219,7 @@ def prep_XY(cat, select_class, features):
     return X_train, Y_train, X_valid, Y_valid
 
 
-# In[50]:
+# In[15]:
 
 
 class results:
@@ -238,7 +238,7 @@ class results:
 
 # # select elliptical galaxies in color-color plane
 
-# In[51]:
+# In[16]:
 
 
 gal_type = 'ellis'
@@ -251,7 +251,7 @@ vpoly_orders = [1,2,3,4]
 
 # ### fit model and plot decision bounderies
 
-# In[52]:
+# In[17]:
 
 
 Ndat = 100000
@@ -266,20 +266,19 @@ y_max = cat[vfeatures[1]].max()
 f1 = x_min + (x_max-x_min)*np.random.rand(Ndat)
 f2 = y_min + (y_max-y_min)*np.random.rand(Ndat)
 
-
 # concat input vectors to data matrix
 X_rand = np.concatenate((f1,f2)).reshape(Nfeature,Ndat).T
 
 len(cat[select_ellis==True]), len(cat[select_ellis==False]), len(cat)
 
 
-# In[53]:
+# In[18]:
 
 
 np.log(10**-6)
 
 
-# In[61]:
+# In[19]:
 
 
 fig,ax = plt.subplots(2,len(vpoly_orders), figsize=(16,8), sharex=True, sharey=True)
@@ -304,7 +303,7 @@ for i in range(len(vpoly_orders)):
     ax[0,i].scatter(X_rand[Y_rand==1][:,0], X_rand[Y_rand==1][:,1], s=5, c='lightgrey', alpha=1)
     ax[1,i].scatter(X_rand[Y_rand==1][:,0], X_rand[Y_rand==1][:,1], s=5, c='lightgrey', alpha=1)
 
-    #nno
+    #non-binary
     #Y_rand = model.predict(X_rand, binary=False)
     #ax[0,i].scatter(X_rand[:,0], X_rand[:,1], s=5, c=Y_rand, cmap='Greens', alpha=0.1)
 
@@ -495,8 +494,156 @@ ax[1,0].legend()
 plt.show()
 
 
-# # convert notebook to python script and remove this command from script
+# # multiclass classification
 
 # In[25]:
 
 
+cat['gal_class'] = 0
+cat.loc[select_disks_dd, 'gal_class']=1
+cat.loc[select_disks_bd, 'gal_class']=2
+cat.loc[select_ellis, 'gal_class']=3
+cat.loc[select_irre, 'gal_class']=4
+
+
+# In[26]:
+
+
+vfeatures = ['rj', 'nuvr']
+
+cat = cat.dropna(subset = vfeatures)
+
+X = cat[vfeatures].values
+Y = cat['gal_class']
+
+
+# ### split into training and test set
+
+# In[27]:
+
+
+frac_train, frac_valid, frac_test = 0.5,0.5,0.0
+    
+rnd = np.random.random(len(Y))
+
+select_train = rnd <=frac_train
+select_valid = ((frac_train < rnd) & (rnd<frac_train+frac_valid))
+select_test = frac_train+frac_valid <= rnd
+
+X_train = X[select_train]
+Y_train = Y[select_train]
+
+X_valid = X[select_valid]
+Y_valid = Y[select_valid]
+
+X_test = X[select_test]
+Y_test = Y[select_test]
+
+
+# ### run classifier
+
+# In[28]:
+
+
+get_ipython().run_line_magic('load_ext', 'autoreload')
+get_ipython().run_line_magic('autoreload', '2')
+
+from LogisticRegression import MultiClass
+
+
+# In[29]:
+
+
+model = MultiClass(X_train, Y_train, poly_order=2, uniform_class_size=True)
+model.fit()
+model.performance(X_valid, Y_valid)
+model.plot_confusion_matrix(X_valid, Y_valid)
+
+
+# ### plot decision boundaries
+
+# In[30]:
+
+
+Ndat = 100000
+Nfeature = len(vfeatures)
+
+fontsize = 18
+
+#random feature vectors for Ndat data points
+x_min = cat[vfeatures[0]].min()
+x_max = cat[vfeatures[0]].max()
+y_min = cat[vfeatures[1]].min()
+y_max = cat[vfeatures[1]].max()
+
+f1 = x_min + (x_max-x_min)*np.random.rand(Ndat)
+f2 = y_min + (y_max-y_min)*np.random.rand(Ndat)
+
+# concat input vectors to data matrix
+X_rand = np.concatenate((f1,f2)).reshape(Nfeature,Ndat).T
+
+
+Y_rand = model.predict(X_rand)
+
+
+fig, ax = plt.subplots(1,1,figsize=(10,10))
+
+ps = 30
+
+vcol = ['r', 'g','b', 'orange', 'purple']
+
+for iclass in range(5):
+    ax.scatter(X_rand[Y_rand==iclass][:,0], X_rand[Y_rand==iclass][:,1], s=ps, c=vcol[iclass], alpha=1)
+
+    
+ax.set_ylabel(vfeatures[0], fontsize=fontsize)
+ax.set_xlabel(vfeatures[1], fontsize=fontsize)
+
+ax.axis('off')
+
+plt.show()
+
+
+# In[31]:
+
+
+fig,ax = plt.subplots(1,5, figsize=(20,5), sharex=True, sharey=True)
+
+ps=10
+
+fontsize=16
+
+vcol = ['r', 'g','b', 'orange', 'purple']
+
+for iclass in range(5):
+
+    ax[iclass].scatter(cat[cat.gal_class==iclass].rj, cat[cat.gal_class==iclass].nuvr, s=ps, c='grey', alpha=0.5)
+    ax[iclass].scatter(X_rand[Y_rand==iclass][:,0], X_rand[Y_rand==iclass][:,1], s=ps, c=vcol[iclass], alpha=0.01)
+
+
+ax[0].set_title('no type', fontsize=fontsize)
+ax[1].set_title('disks (disk dominated)', fontsize=fontsize)
+ax[2].set_title('disks (bulge dominated)', fontsize=fontsize)
+ax[3].set_title('ellipticals', fontsize=fontsize)
+ax[4].set_title('iregulars', fontsize=fontsize)
+
+ax[0].set_ylabel(vfeatures[0], fontsize=fontsize)
+
+for ix in range(5):
+    ax[ix].set_xlabel(vfeatures[1], fontsize=fontsize)
+
+plt.tight_layout()
+plt.show()
+
+
+# # convert notebook to python script and remove this command from script
+
+# In[32]:
+
+
+get_ipython().system('jupyter-nbconvert --to script gal_class_binary.ipynb')
+
+with open('galaxy_classification.py', 'r') as f:
+    lines = f.readlines()
+with open('galaxy_classification.py', 'w') as f:
+    for line in lines:
