@@ -277,6 +277,10 @@ class MultiClass:
             if key == 'theta_ini': self.theta_ini = value
 
         for i in range(self.Nclass):
+            
+            if self.verbose > 0:
+                print('training on class ', i)
+            
             Y_train_i = np.where(self.Y_train==i, 1, 0)
             model = BinaryClass(
                 self.X_train, Y_train_i,
