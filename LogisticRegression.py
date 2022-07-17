@@ -33,8 +33,10 @@ class BinaryClass:
         #re-scale input features
         self.train_mean = self.X_train.T.mean(1)       
         self.train_var = self.X_train.T.var(1)
+
+        self.X_train = (self.X_train - self.train_mean)
+        self.X_train[:,self.train_var>0]/self.train_var[self.train_var>0]
         
-        self.X_train = (self.X_train - self.train_mean)/ self.train_var
         
         ### add higher orders
         self.X_train = self._add_higher_orders(self.X_train,self.poly_order)
@@ -62,7 +64,6 @@ class BinaryClass:
         self.accuracy_train = np.nan
         self.accuracy_valid = np.nan
 
-        
     def _add_higher_orders(self,X_in,max_order):
 
         X_out = X_in.copy()
@@ -127,9 +128,12 @@ class BinaryClass:
         hi = z > zlim
         mid = (z>=-zlim) & (z<=zlim)
 
-        sig[mid] = (1+np.exp(-z[mid]))**-1
-        sig[lo] = sig[mid].min()
-        sig[hi] = sig[mid].max()
+        #print(len(z), np.sum(lo), np.sum(hi), np.sum(mid))
+        #print(z)
+
+        sig[mid] = (1+np.exp(-z[mid]))**-1 
+        sig[lo] = (1+np.exp(zlim))**-1
+        sig[hi] = (1+np.exp(-zlim))**-1
 
         return sig
     
@@ -177,7 +181,10 @@ class BinaryClass:
 
         
         #re-scale input features
-        X_in = (X_in - self.train_mean)/ self.train_var
+        X_in = (X_in - self.train_mean)
+        X_in[:,self.train_var>0]/self.train_var[self.train_var>0]
+        
+        #X_in = (X_in - self.train_mean)/ self.train_var
         
         ### add higher orders
         X_in = self._add_higher_orders(X_in,self.poly_order)
@@ -269,6 +276,18 @@ class MultiClass:
         # confusion matrix
         self.CoMa = np.zeros(self.Nclass**2).reshape(self.Nclass,self.Nclass)
 
+
+
+    def summary(self):        
+        
+        
+        print('polynomial order: ', self.poly_order)
+        print('number of input features: ', self.Nfeature_in)
+        print('number of classes: ', self.Nclass)
+        
+        for i in range(self.Nclass):
+            print('size of training sample class', i,': ', len(self.Y_train[self.Y_train==0]))
+        
 
     def fit(self,**kwargs):
         
