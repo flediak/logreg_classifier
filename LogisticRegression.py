@@ -123,17 +123,16 @@ class BinaryClass:
         sig = np.zeros(len(z))
 
         # for numerical stability
-        zlim = 10
+        zlim = 5
         lo = z < -zlim
         hi = z > zlim
         mid = (z>=-zlim) & (z<=zlim)
 
-        #print(len(z), np.sum(lo), np.sum(hi), np.sum(mid))
-        #print(z)
-
         sig[mid] = (1+np.exp(-z[mid]))**-1 
-        sig[lo] = (1+np.exp(zlim))**-1
-        sig[hi] = (1+np.exp(-zlim))**-1
+        #sig[lo] = (1+np.exp(zlim))**-1
+        #sig[hi] = (1+np.exp(-zlim))**-1
+        sig[lo] = 0.01
+        sig[hi] = 0.99
 
         return sig
     
