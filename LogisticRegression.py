@@ -286,7 +286,7 @@ class MultiClass:
         print('number of classes: ', self.Nclass)
         
         for i in range(self.Nclass):
-            print('size of training sample class', i,': ', len(self.Y_train[self.Y_train==0]))
+            print('size of training sample class', i,': ', len(self.Y_train[self.Y_train==i]))
         
 
     def fit(self,**kwargs):
