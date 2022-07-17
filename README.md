@@ -9,3 +9,7 @@ using a combination of binary classifications.
 - classification of galaxies into morphological types (elliptical, disky, irregular) based on color and luminosity:
 
   https://colab.research.google.com/drive/15qtFJbhFwl7NIEb8-D3Hw58cbbNwbn0o?usp=sharing
+
+- classification of numbers in images
+
+  https://colab.research.google.com/drive/1QLKwmVS-szNWQ57yIyhIM6AfX3y4mUSt?usp=sharing
