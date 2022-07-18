@@ -16,3 +16,5 @@ using a combination of binary classifications.
 - classification of numbers in images
 
   https://colab.research.google.com/drive/1QLKwmVS-szNWQ57yIyhIM6AfX3y4mUSt?usp=sharing
+  
+  ![classification of numbers in images](classify_numbers.png.png)
