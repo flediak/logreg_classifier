@@ -11,10 +11,11 @@ using a combination of binary classifications.
 
   https://colab.research.google.com/drive/15qtFJbhFwl7NIEb8-D3Hw58cbbNwbn0o?usp=sharing
   
-  ![decision boundaries for galaxy classificaiton in color-color space](decision_boundaries.png)
+  <img src="decision_boundaries.png" width="250" height="250">
 
 - classification of numbers in images
 
   https://colab.research.google.com/drive/1QLKwmVS-szNWQ57yIyhIM6AfX3y4mUSt?usp=sharing
   
-  ![classification of numbers in images](classify_numbers.png.png)
+  <img src="classify_numbers.png" width="250" height="250">
+ 
