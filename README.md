@@ -13,13 +13,16 @@ using a combination of binary classifications.
   
   <img src="decision_boundaries.png" width="250" height="250">
 
+
 - detect of numbers in images from MNIST database (using convolution and max pooling from KERAS)
 
   https://colab.research.google.com/drive/1QLKwmVS-szNWQ57yIyhIM6AfX3y4mUSt?usp=sharing
   
   <img src="classify_numbers.png" width="250" height="250">
  
+ 
  - classifying images of cats and airplanes from CIFAR-10 database (using convolution from KERAS and PCA from scikit-learn)
-https://colab.research.google.com/drive/1E4fQdfPtqaZ3BLyg0oorxq4bIKmOFCSA?usp=sharing
-  
-  <img src="cat_or_airplane.png" width="250" height="250">
+ 
+   https://colab.research.google.com/drive/1E4fQdfPtqaZ3BLyg0oorxq4bIKmOFCSA?usp=sharing
+
+   <img src="cat_or_airplane.png" width="250" height="250">
