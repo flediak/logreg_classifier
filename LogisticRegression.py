@@ -226,7 +226,7 @@ class BinaryClass:
         if dataset=='training':
             if TP + FP > 0: self.precision_train = TP / (TP + FP)
             if TP + FN > 0: self.recall_train = TP / (TP + FN)
-            if TP+TN+FP+TN > 0: self.accuracy_train = (TP+TN) / (TP+TN+FP+TN)        
+            if TP+TN+FP+TN > 0: self.accuracy_train = (TP+TN) / (TP+TN+FP+FN)        
             if self.verbose>0:
                 print('')
                 print('precision: ',self.precision_train)
@@ -236,7 +236,7 @@ class BinaryClass:
         if dataset=='validation':
             if TP + FP > 0: self.precision_valid = TP / (TP + FP)
             if TP + FN > 0:self.recall_valid = TP / (TP + FN)
-            if TP+TN+FP+TN > 0: self.accuracy_valid = (TP+TN) / (TP+TN+FP+TN)        
+            if TP+TN+FP+TN > 0: self.accuracy_valid = (TP+TN) / (TP+TN+FP+FN)
             if self.verbose>0:
                 print('')
                 print('precision: ',self.precision_valid)
